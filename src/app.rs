@@ -6,6 +6,7 @@ pub struct App {
     map: map::Map,
     player_pos: (u16, u16), // x, y position on the map.
     key_pos: (u16, u16),    // where the key sits on the map.
+    door_pos: (u16, u16),   // where the door sits on the map.
     has_key: bool,
     door_open: bool,
     show_about: bool,
@@ -27,6 +28,7 @@ impl App {
             map: demo_castle(),
             player_pos: (3, 4), // bottom-middle of the interior floor
             key_pos: (2, 3),    // left side, like the original game
+            door_pos: (3, 2),   // top-middle, the way out
             has_key: false,
             door_open: false,
             show_about: false,
@@ -35,17 +37,26 @@ impl App {
     }
 
     pub fn update(&mut self, action: Action) {
-        match action {
+        let moved = match action {
             Action::MoveUp => self.try_move(0, -1),
             Action::MoveDown => self.try_move(0, 1),
             Action::MoveLeft => self.try_move(-1, 0),
             Action::MoveRight => self.try_move(1, 0),
-            Action::ToggleAbout => self.show_about = !self.show_about,
+            Action::ToggleAbout => {
+                self.show_about = !self.show_about;
+                false
+            }
+        };
+
+        // Only react to the destination tile if the player actually moved onto it.
+        if moved {
+            self.enter_tile();
         }
     }
 
-    /// Move the player by a signed delta, but only if the target is walkable.
-    fn try_move(&mut self, dx: i32, dy: i32) {
+    /// Move the player by a signed delta if the target is walkable.
+    /// Returns whether the move happened.
+    fn try_move(&mut self, dx: i32, dy: i32) -> bool {
         let nx = self.player_pos.0 as i32 + dx;
         let ny = self.player_pos.1 as i32 + dy;
 
@@ -53,11 +64,21 @@ impl App {
         // we know nx/ny are valid, non-negative, and safe to store as u16.
         if self.map.walkable(nx, ny) {
             self.player_pos = (nx as u16, ny as u16);
+            true
+        } else {
+            false
+        }
+    }
 
-            // Picking up the key only makes sense on a tile we actually moved to.
-            if self.player_pos == self.key_pos {
-                self.has_key = true;
-            }
+    /// React to whatever occupies the tile the player just stepped onto.
+    fn enter_tile(&mut self) {
+        if self.player_pos == self.key_pos {
+            self.has_key = true;
+        }
+
+        if self.player_pos == self.door_pos && self.has_key {
+            self.door_open = true;
+            self.show_about = true; // reaching the door with the key is the win
         }
     }
 }
@@ -80,6 +101,7 @@ mod tests {
             map: demo_castle(),
             player_pos: player,
             key_pos: key,
+            door_pos: (1, 1), // parked on a wall, unreachable, for tests that ignore it
             has_key: false,
             door_open: false,
             show_about: false,
@@ -90,6 +112,20 @@ mod tests {
     // Movement tests don't care about the key, so park it out of the way.
     fn app_at(pos: (u16, u16)) -> App {
         app_with(pos, (4, 4))
+    }
+
+    // Builder for door tests: place the door and choose whether we hold the key.
+    fn app_door(player: (u16, u16), door: (u16, u16), has_key: bool) -> App {
+        App {
+            map: demo_castle(),
+            player_pos: player,
+            key_pos: (1, 1), // parked; door tests set has_key directly
+            door_pos: door,
+            has_key,
+            door_open: false,
+            show_about: false,
+            theme: Theme::default(),
+        }
     }
 
     #[test]
@@ -160,5 +196,25 @@ mod tests {
         app.update(Action::MoveRight); // move on to (4,2)
         assert_eq!(app.player_pos, (4, 2));
         assert!(app.has_key); // still have it
+    }
+
+    // Stepping onto the door while holding the key opens it and reveals About.
+    #[test]
+    fn stepping_onto_door_with_key_opens_it() {
+        // player at (2,2), door one step right at (3,2), key already in hand
+        let mut app = app_door((2, 2), (3, 2), true);
+        app.update(Action::MoveRight);
+        assert_eq!(app.player_pos, (3, 2)); // moved onto the door
+        assert!(app.door_open);
+        assert!(app.show_about);
+    }
+
+    // Stepping onto the door without the key does nothing.
+    #[test]
+    fn stepping_onto_door_without_key_does_nothing() {
+        let mut app = app_door((2, 2), (3, 2), false);
+        app.update(Action::MoveRight);
+        assert!(!app.door_open);
+        assert!(!app.show_about);
     }
 }
