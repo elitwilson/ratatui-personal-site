@@ -22,20 +22,28 @@ impl Map {
             height,
         }
     }
+
+    pub fn walkable(&self, x: u16, y: u16) -> bool {
+        // Guard the bounds first, or the index below would panic.
+        if x >= self.width as u16 || y >= self.height as u16 {
+            return false;
+        }
+        matches!(self.tiles[y as usize][x as usize], Tile::Floor)
+    }
 }
 
-pub fn walkable(map: &Map, x: u16, y: u16) -> bool {
-    // Check if the coordinates are within the map's bounds.
-    if x >= map.width as u16 || y >= map.height as u16 {
-        return false;
-    }
-
-    let pos = map.tiles[y as usize][x as usize];
-    if pos == Tile::Wall || pos == Tile::Outside {
-        return false;
-    }
-
-    return true;
+/// A small placeholder castle, used until the real map is authored.
+pub fn demo_castle() -> Map {
+    use Tile::{Floor as F, Outside as O, Wall as W};
+    Map::new(vec![
+        vec![O, O, O, O, O, O, O],
+        vec![O, W, W, W, W, W, O],
+        vec![O, W, F, F, F, W, O],
+        vec![O, W, F, W, F, W, O],
+        vec![O, W, F, F, F, W, O],
+        vec![O, W, W, W, W, W, O],
+        vec![O, O, O, O, O, O, O],
+    ])
 }
 
 #[cfg(test)]
@@ -62,7 +70,7 @@ mod tests {
     // A floor tile is something the player can stand on.
     #[test]
     fn floor_tile_is_walkable() {
-        let can_walk = walkable(&test_map(), 2, 2);
+        let can_walk = test_map().walkable(2, 2);
         assert!(can_walk);
     }
 
@@ -71,14 +79,14 @@ mod tests {
     fn wall_tile_is_not_walkable() {
         // Arrange: a map with a known wall tile at some (x, y)
         // Act / Assert: walkable(...) returns false
-        let can_walk = walkable(&test_map(), 1, 2);
+        let can_walk = test_map().walkable(1, 2);
         assert!(!can_walk);
     }
 
     // "Outside" is the black void around the castle — also not walkable.
     #[test]
     fn outside_tile_is_not_walkable() {
-        let can_walk = walkable(&test_map(), 0, 0);
+        let can_walk = test_map().walkable(0, 0);
         assert!(!can_walk);
     }
 
@@ -87,7 +95,7 @@ mod tests {
     #[test]
     fn out_of_bounds_is_not_walkable() {
         // e.g. an x or y >= the map's dimensions
-        let can_walk = walkable(&test_map(), 10, 10);
+        let can_walk = test_map().walkable(10, 10);
         assert!(!can_walk);
     }
 }
