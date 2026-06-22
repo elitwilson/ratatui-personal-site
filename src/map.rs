@@ -358,4 +358,18 @@ mod tests {
         let without_newline: Level = "@kD".parse().unwrap();
         assert_eq!(with_newline.map.height(), without_newline.map.height());
     }
+
+    // Guards that the bundled castle.map parses to the expected entity positions
+    // and dimensions. This is the single test that makes the include_str! .expect()
+    // in App::new safe in practice.
+    #[test]
+    fn castle_map_parses_to_expected_state() {
+        let src = include_str!("../assets/castle.map");
+        let level: Level = src.parse().expect("castle.map should parse");
+        assert_eq!(level.player, (10, 8));
+        assert_eq!(level.key, (3, 4));
+        assert_eq!(level.door, (10, 9));
+        assert_eq!(level.map.width(), 21);
+        assert_eq!(level.map.height(), 11);
+    }
 }
