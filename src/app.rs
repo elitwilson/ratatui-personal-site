@@ -1,4 +1,4 @@
-use crate::map::{Map, castle};
+use crate::map::Map;
 #[cfg(test)]
 use crate::map::demo_castle;
 use crate::render;
@@ -50,11 +50,18 @@ pub fn map_key(code: KeyCode) -> Option<Command> {
 
 impl App {
     pub fn new() -> Self {
+        // The castle map is a compile-time constant baked in via include_str!.
+        // A parse failure here is a bug in the map file, not a runtime condition,
+        // so .expect() is the correct resolution — the guard test in map.rs
+        // ensures this never fires in practice.
+        let level = include_str!("../assets/castle.map")
+            .parse::<crate::map::Level>()
+            .expect("built-in castle map should parse");
         Self {
-            map: castle(),
-            player_pos: (10, 8), // just inside the bottom entrance
-            key_pos: (3, 4),     // left side, like the original game
-            door_pos: (10, 9),   // the gated doorway at the bottom
+            map: level.map,
+            player_pos: level.player,
+            key_pos: level.key,
+            door_pos: level.door,
             has_key: false,
             door_open: false,
             show_about: false,

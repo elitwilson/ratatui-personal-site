@@ -47,25 +47,6 @@ impl Map {
     }
 }
 
-/// The playable castle: a battlemented (crenellated) top, a rectangular
-/// interior, and a gated entrance at the bottom center.
-pub fn castle() -> Map {
-    use Tile::{Floor as F, Outside as O, Wall as W};
-    Map::new(vec![
-        vec![W, W, O, W, O, W, O, W, O, F, F, F, O, W, O, W, O, W, W, W, W],
-        vec![W, W, W, W, W, W, W, W, F, F, F, F, O, W, O, W, O, W, W, W, W],
-        vec![W, F, F, F, F, F, F, F, F, F, F, F, F, F, W, W, W, W, F, F, W],
-        vec![W, F, F, F, F, F, F, F, F, F, F, F, F, F, W, W, W, W, F, F, W],
-        vec![W, F, F, F, F, F, F, F, F, F, F, F, F, F, W, W, W, W, F, F, W],
-        vec![W, F, F, F, F, F, F, F, F, F, F, F, F, F, F, F, F, F, F, F, W],
-        vec![W, F, F, F, F, F, F, F, F, F, F, F, F, F, F, F, F, F, F, F, W],
-        vec![W, F, F, F, F, F, F, F, F, F, F, F, F, F, F, F, F, F, F, F, W],
-        vec![W, F, F, F, F, F, F, F, F, F, F, F, F, F, F, F, F, F, F, F, W],
-        vec![W, W, W, W, W, W, W, W, W, W, F, W, W, W, W, W, W, W, W, W, W],
-        vec![O, O, O, O, O, O, O, O, O, O, F, O, O, O, O, O, O, O, O, O, O],
-    ])
-}
-
 /// A parsed level: the map grid plus entity starting positions.
 ///
 /// The legend used in `.map` text files:
