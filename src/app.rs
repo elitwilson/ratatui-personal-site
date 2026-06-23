@@ -157,19 +157,27 @@ impl App {
 
 pub fn app(terminal: &mut DefaultTerminal) -> std::io::Result<()> {
     let mut app = App::new();
+    let mut last = Instant::now();
     loop {
         terminal.draw(|frame| render::ui(frame, &app))?;
 
-        if let Event::Key(key) = event::read()? {
-            if key.kind != KeyEventKind::Press {
-                continue;
-            }
-            match map_key(key.code) {
-                Some(Command::Quit) => break Ok(()),
-                Some(Command::Game(action)) => app.update(action),
-                None => {}
+        let now = Instant::now();
+        let dt = now - last;
+        last = now;
+
+        if event::poll(FRAME_TIME)? {
+            if let Event::Key(key) = event::read()? {
+                if key.kind == KeyEventKind::Press {
+                    match map_key(key.code) {
+                        Some(Command::Quit) => return Ok(()),
+                        Some(Command::Game(action)) => app.update(action),
+                        None => {}
+                    }
+                }
             }
         }
+
+        app.tick(dt);
     }
 }
 
