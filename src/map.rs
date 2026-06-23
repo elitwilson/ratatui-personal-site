@@ -69,7 +69,7 @@ pub struct Level {
 #[derive(Debug, PartialEq)]
 pub enum ParseError {
     UnknownChar(char),
-    MissingEntity(&'static str),   // "player" | "key" | "door"
+    MissingEntity(&'static str), // "player" | "key" | "door"
     DuplicateEntity(&'static str),
 }
 

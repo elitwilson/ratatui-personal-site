@@ -207,17 +207,38 @@ mod tests {
     #[test]
     fn arrow_keys_map_to_movement() {
         assert_eq!(map_key(KeyCode::Up), Some(Command::Game(Action::MoveUp)));
-        assert_eq!(map_key(KeyCode::Down), Some(Command::Game(Action::MoveDown)));
-        assert_eq!(map_key(KeyCode::Left), Some(Command::Game(Action::MoveLeft)));
-        assert_eq!(map_key(KeyCode::Right), Some(Command::Game(Action::MoveRight)));
+        assert_eq!(
+            map_key(KeyCode::Down),
+            Some(Command::Game(Action::MoveDown))
+        );
+        assert_eq!(
+            map_key(KeyCode::Left),
+            Some(Command::Game(Action::MoveLeft))
+        );
+        assert_eq!(
+            map_key(KeyCode::Right),
+            Some(Command::Game(Action::MoveRight))
+        );
     }
 
     #[test]
     fn wasd_keys_map_to_movement() {
-        assert_eq!(map_key(KeyCode::Char('w')), Some(Command::Game(Action::MoveUp)));
-        assert_eq!(map_key(KeyCode::Char('s')), Some(Command::Game(Action::MoveDown)));
-        assert_eq!(map_key(KeyCode::Char('a')), Some(Command::Game(Action::MoveLeft)));
-        assert_eq!(map_key(KeyCode::Char('d')), Some(Command::Game(Action::MoveRight)));
+        assert_eq!(
+            map_key(KeyCode::Char('w')),
+            Some(Command::Game(Action::MoveUp))
+        );
+        assert_eq!(
+            map_key(KeyCode::Char('s')),
+            Some(Command::Game(Action::MoveDown))
+        );
+        assert_eq!(
+            map_key(KeyCode::Char('a')),
+            Some(Command::Game(Action::MoveLeft))
+        );
+        assert_eq!(
+            map_key(KeyCode::Char('d')),
+            Some(Command::Game(Action::MoveRight))
+        );
     }
 
     #[test]
