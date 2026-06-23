@@ -1,6 +1,6 @@
 ---
 number: 002
-status: ready
+status: complete
 base_branch: main
 depends_on: []
 scope_files:
