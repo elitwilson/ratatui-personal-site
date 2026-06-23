@@ -3,19 +3,24 @@ use crate::effects::{EffectKind, FireworksParams, spawn};
 use crate::particle_render::draw_particles;
 use crate::particles::ParticleSystem;
 use crate::rng::Rng;
-use crossterm::event::{self, Event, KeyCode, KeyEventKind};
+use crossterm::event::{
+    self, DisableMouseCapture, EnableMouseCapture, Event, KeyCode, KeyEventKind,
+};
+use crossterm::execute;
 use ratatui::DefaultTerminal;
 use ratatui::layout::{Constraint, Direction, Layout, Rect};
 use ratatui::style::{Color, Style};
 use ratatui::text::Span;
 use ratatui::widgets::{Block, Paragraph};
+use std::io::stdout;
 use std::time::{Duration, Instant};
 
 /// Fixed seed for the sandbox PRNG — reproducible run-to-run.
 const SANDBOX_SEED: u64 = 0xdeadbeef_cafe1234;
 
-/// How often to auto-spawn a fireworks burst at screen center.
-const SPAWN_INTERVAL: Duration = Duration::from_millis(800);
+/// How often to auto-spawn a fireworks burst. This is the customizable cadence
+/// knob — e.g. `from_secs(2)` for a slow drip, `from_millis(500)` for rapid fire.
+const SPAWN_INTERVAL: Duration = Duration::from_millis(750);
 
 /// All available effect kinds. When STR-002 exposes an ALL const this can be
 /// replaced; for now we define the canonical list locally.
@@ -46,6 +51,22 @@ pub fn area_center(area: Rect) -> (f32, f32) {
     let cx = area.x as f32 + area.width as f32 / 2.0;
     let cy = area.y as f32 + area.height as f32 / 2.0;
     (cx, cy)
+}
+
+/// Choose the burst origin in body-relative cell-space.
+///
+/// Returns the mouse cell when known, otherwise the body center — both expressed
+/// relative to `area`'s top-left, which is what `spawn` and `draw_particles`
+/// expect (particle positions are body-relative; the renderer re-applies the
+/// area offset when drawing).
+pub fn spawn_origin(area: Rect, mouse: Option<(u16, u16)>) -> (f32, f32) {
+    match mouse {
+        Some((mx, my)) => (mx as f32 - area.x as f32, my as f32 - area.y as f32),
+        None => {
+            let (cx, cy) = area_center(area);
+            (cx - area.x as f32, cy - area.y as f32)
+        }
+    }
 }
 
 /// Advance the effect-kind index by one, wrapping at the end of the list.
@@ -90,7 +111,11 @@ pub fn sandbox(terminal: &mut DefaultTerminal) -> std::io::Result<()> {
     let mut kind_idx: usize = 0;
     let mut spawn_acc = Duration::ZERO;
     let mut last_area: Option<Rect> = None;
+    let mut last_mouse: Option<(u16, u16)> = None;
     let mut last = Instant::now();
+
+    // The sandbox follows the mouse, so opt into mouse events for this run.
+    execute!(stdout(), EnableMouseCapture)?;
 
     loop {
         // --- draw ---
@@ -112,7 +137,9 @@ pub fn sandbox(terminal: &mut DefaultTerminal) -> std::io::Result<()> {
             let kind_name = match EFFECT_KINDS[kind_idx] {
                 EffectKind::Fireworks => "Fireworks",
             };
-            let hint = format!(" Sandbox | Effect: {kind_name} | Tab: cycle | q/Esc: quit ");
+            let hint = format!(
+                " Sandbox | Effect: {kind_name} | Follows mouse | Tab: cycle | q/Esc: quit "
+            );
             let title = Paragraph::new(Span::styled(hint, Style::default().fg(Color::Yellow)))
                 .block(Block::default());
             frame.render_widget(title, title_area);
@@ -139,31 +166,42 @@ pub fn sandbox(terminal: &mut DefaultTerminal) -> std::io::Result<()> {
         last = now;
 
         // --- input ---
-        if event::poll(FRAME_TIME)?
-            && let Event::Key(key) = event::read()?
-            && key.kind == KeyEventKind::Press
-        {
-            match map_sandbox_key(key.code) {
-                SandboxCommand::Quit => return Ok(()),
-                SandboxCommand::CycleEffect => {
-                    kind_idx = next_kind(kind_idx, EFFECT_KINDS.len());
+        // Block up to one frame for the first event (this paces the loop), then
+        // drain the rest so rapid mouse motion doesn't lag or back up the queue.
+        if event::poll(FRAME_TIME)? {
+            loop {
+                match event::read()? {
+                    Event::Key(key) if key.kind == KeyEventKind::Press => {
+                        match map_sandbox_key(key.code) {
+                            SandboxCommand::Quit => {
+                                execute!(stdout(), DisableMouseCapture)?;
+                                return Ok(());
+                            }
+                            SandboxCommand::CycleEffect => {
+                                kind_idx = next_kind(kind_idx, EFFECT_KINDS.len());
+                            }
+                            SandboxCommand::Ignore => {}
+                        }
+                    }
+                    // Track the latest cursor cell — bursts spawn here.
+                    Event::Mouse(me) => last_mouse = Some((me.column, me.row)),
+                    _ => {}
                 }
-                SandboxCommand::Ignore => {}
+                if !event::poll(Duration::ZERO)? {
+                    break;
+                }
             }
         }
 
-        // --- auto-spawn at center ---
+        // --- auto-spawn at the mouse (or center until the mouse first moves) ---
         if let Some(area) = last_area {
             let (count, remainder) = cadence_step(spawn_acc, dt, SPAWN_INTERVAL);
             spawn_acc = remainder;
-            let center = area_center(area);
-            // center is absolute buffer coords; draw_particles offsets by area origin,
-            // so we supply positions relative to the body's top-left.
-            let relative_center = (center.0 - area.x as f32, center.1 - area.y as f32);
+            let origin = spawn_origin(area, last_mouse);
             for _ in 0..count {
                 spawn(
                     EFFECT_KINDS[kind_idx],
-                    relative_center,
+                    origin,
                     &params,
                     &mut rng,
                     &mut system,
@@ -207,6 +245,27 @@ mod tests {
         let (cx, cy) = area_center(area);
         assert!((cx - 40.5).abs() < 1e-4, "cx: {cx}");
         assert!((cy - 12.5).abs() < 1e-4, "cy: {cy}");
+    }
+
+    // --- spawn_origin ---
+
+    #[test]
+    fn spawn_origin_uses_mouse_relative_to_area() {
+        // Body starts at (0, 1); cursor at absolute (30, 11) is (30, 10) body-relative.
+        let area = Rect::new(0, 1, 80, 23);
+        let (x, y) = spawn_origin(area, Some((30, 11)));
+        assert!((x - 30.0).abs() < 1e-4, "x: {x}");
+        assert!((y - 10.0).abs() < 1e-4, "y: {y}");
+    }
+
+    #[test]
+    fn spawn_origin_falls_back_to_center_without_mouse() {
+        // No mouse yet → body center, expressed relative to the body origin.
+        // area center abs = (40, 13); relative = (40, 12).
+        let area = Rect::new(0, 1, 80, 24);
+        let (x, y) = spawn_origin(area, None);
+        assert!((x - 40.0).abs() < 1e-4, "x: {x}");
+        assert!((y - 12.0).abs() < 1e-4, "y: {y}");
     }
 
     // --- next_kind ---
