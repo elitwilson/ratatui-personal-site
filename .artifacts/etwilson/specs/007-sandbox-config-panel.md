@@ -1,7 +1,7 @@
 ---
 number: 007
 story: null   # ad-hoc spec — interactive sandbox tooling, not decomposed from a story
-status: ready
+status: complete
 base_branch: feature/epic-001-particle-effects-20260622
 depends_on: []
 scope_files:
