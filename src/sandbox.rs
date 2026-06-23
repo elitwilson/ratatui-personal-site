@@ -3,15 +3,17 @@ use crate::effects::{EffectKind, FireworksParams, spawn};
 use crate::particle_render::draw_particles;
 use crate::particles::ParticleSystem;
 use crate::rng::Rng;
+use crate::sandbox_config::{ConfigField, FIELDS, SandboxConfig, step};
 use crossterm::event::{
     self, DisableMouseCapture, EnableMouseCapture, Event, KeyCode, KeyEventKind,
 };
 use crossterm::execute;
 use ratatui::DefaultTerminal;
+use ratatui::Frame;
 use ratatui::layout::{Constraint, Direction, Layout, Rect};
-use ratatui::style::{Color, Style};
-use ratatui::text::Span;
-use ratatui::widgets::{Block, Paragraph};
+use ratatui::style::{Color, Modifier, Style};
+use ratatui::text::{Line, Span};
+use ratatui::widgets::{Block, Borders, Clear, Paragraph};
 use std::io::stdout;
 use std::time::{Duration, Instant};
 
@@ -93,6 +95,81 @@ pub fn cadence_step(accumulator: Duration, dt: Duration, interval: Duration) -> 
     let count = total.as_nanos() / interval.as_nanos();
     let remainder = total - interval * count as u32;
     (count as u32, remainder)
+}
+
+/// Render the config overlay onto `frame`.
+///
+/// Draws a centered bordered panel listing all adjustable fields with their
+/// current values. The selected row is highlighted in yellow+bold. The sandbox
+/// keeps rendering behind the panel (caller draws particles first, then calls
+/// this to overlay).
+pub fn draw_config_panel(frame: &mut Frame, config: &SandboxConfig) {
+    let full = frame.area();
+
+    // Centre a panel that is 36 columns wide and has one row per field plus
+    // 2 border rows and 1 header padding row = FIELDS.len() + 3 rows tall.
+    let panel_w = 36u16;
+    let panel_h = (FIELDS.len() as u16) + 3;
+    let x = full.width.saturating_sub(panel_w) / 2;
+    let y = full.height.saturating_sub(panel_h) / 2;
+    let panel = Rect::new(x, y, panel_w.min(full.width), panel_h.min(full.height));
+
+    // Clear the cells behind the panel so particle glyphs don't show through.
+    frame.render_widget(Clear, panel);
+
+    let block = Block::default()
+        .title(" Config ")
+        .borders(Borders::ALL)
+        .style(Style::default().fg(Color::White).bg(Color::Black));
+    frame.render_widget(block, panel);
+
+    // Inner area: inside the border (1-cell inset on all sides).
+    let inner = Rect::new(panel.x + 1, panel.y + 1, panel.width.saturating_sub(2), panel.height.saturating_sub(2));
+
+    for (i, field) in FIELDS.iter().enumerate() {
+        let label = field_label(*field);
+        let value = field_value(config, *field);
+        let text = format!("{label}: {value}");
+
+        let style = if i == config.selected {
+            Style::default()
+                .fg(Color::Yellow)
+                .add_modifier(Modifier::BOLD)
+        } else {
+            Style::default().fg(Color::White)
+        };
+
+        let row = Rect::new(inner.x, inner.y + i as u16, inner.width, 1);
+        if row.y < panel.y + panel.height - 1 {
+            frame.render_widget(Paragraph::new(Line::from(Span::styled(text, style))), row);
+        }
+    }
+}
+
+/// Human-readable label for a config field.
+fn field_label(field: ConfigField) -> &'static str {
+    match field {
+        ConfigField::Count => "count",
+        ConfigField::Spread => "spread (rad)",
+        ConfigField::SpeedMin => "speed_min",
+        ConfigField::SpeedMax => "speed_max",
+        ConfigField::LifetimeMin => "lifetime_min",
+        ConfigField::LifetimeMax => "lifetime_max",
+        ConfigField::SpawnInterval => "spawn_interval",
+    }
+}
+
+/// Formatted current value of a config field.
+fn field_value(config: &SandboxConfig, field: ConfigField) -> String {
+    match field {
+        ConfigField::Count => format!("{}", config.params.count),
+        ConfigField::Spread => format!("{:.2}", config.params.spread),
+        ConfigField::SpeedMin => format!("{:.1}", config.params.speed.0),
+        ConfigField::SpeedMax => format!("{:.1}", config.params.speed.1),
+        ConfigField::LifetimeMin => format!("{:.1}", config.params.lifetime.0),
+        ConfigField::LifetimeMax => format!("{:.1}", config.params.lifetime.1),
+        ConfigField::SpawnInterval => format!("{}ms", config.spawn_interval.as_millis()),
+    }
 }
 
 /// Standalone sandbox loop.
