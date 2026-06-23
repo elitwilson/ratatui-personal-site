@@ -42,6 +42,30 @@
 
 **Why:** The actual `Particle::fade()` implementation is the ground truth. The spec's description of the fade semantics was written before STR-001 shipped. Adapting `fade_color` at the call site is the minimal change that keeps everything correct.
 
+## 2026-06-22 (006): Consolidated all 4 spec tasks into a single review round
+
+**Context:** The 4 tasks (scaffold+helpers, cadence accumulator, loop integration, entry swap) are all in `src/sandbox.rs` and `src/main.rs` with tight interdependencies — the loop integration task requires the helpers to be defined first, and meaningful tests for all seams can be written at once.
+
+**Decision:** Sent a single review request covering all 4 tasks together.
+
+**Why:** Sequential RED→review→GREEN rounds for each task would require stub implementations between rounds without adding coverage value. A single review could verify all spec acceptance criteria.
+
+## 2026-06-22 (006): Particle positions are body-relative, not buffer-absolute
+
+**Context:** `draw_particles` takes an `origin: (u16, u16)` offset and adds it to each particle's projected position. The sandbox splits the terminal into a 1-row title and a body area; the body area has non-zero `y` offset (row 1).
+
+**Decision:** Spawn center is computed relative to the body area's top-left (i.e., `center.0 - area.x`, `center.1 - area.y`) and passed to `spawn()`. `draw_particles` is called with `origin = (body.x, body.y)` to re-add the offset at render time.
+
+**Why:** This keeps particle coordinates body-relative, so fireworks spawn at body center and render at the correct absolute cell. If both the spawn and draw use absolute coords the renderer would double-offset and particles would render outside the body.
+
+## 2026-06-22 (006): drew_body captured outside terminal.draw closure
+
+**Context:** `terminal.draw()` takes a `FnMut(&mut Frame) -> ()` closure; the return type is `CompletedFrame`, not the closure's return value. There is no way to return a `Rect` from the closure through `terminal.draw()`.
+
+**Decision:** Declared `let mut drawn_body: Option<Rect> = None;` outside the closure and assigned `drawn_body = Some(body)` inside it. After `terminal.draw()` returns, `last_area` is updated from `drawn_body`.
+
+**Why:** Standard pattern for capturing data out of ratatui draw closures. No alternative without changing the draw API.
+
 ## 2026-06-22: Pre-existing test failures noted
 
 **Failing tests on base branch (not caused by this spec):**

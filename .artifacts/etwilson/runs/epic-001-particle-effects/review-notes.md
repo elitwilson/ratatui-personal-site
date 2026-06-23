@@ -44,3 +44,20 @@ All required test cases are covered. PRNG: same-seed determinism, different-seed
 The semantic inversion in `Particle::fade()` (spec 003 ships 0.0=fresh, 1.0=aged; spec 005 assumed the reverse) is a legitimate upstream adaptation per the spec's own note ("if STR-001's actual surface differs, adapt the call sites"). The `fade_color` convention (0.0=fresh→base color, 1.0=aged→black) is consistent with the adapted implementation and tests.
 
 Projection: all required rounding cases covered including positive round-down, half-way-from-zero round-up, zero, and negative coordinates surviving as `i32`. Fade-to-color: base color at fresh (0.0), black at fully aged (1.0), half-dim verified per channel, non-`Rgb` passthrough confirmed. draw_particles: glyph painted at projected cell, faded color applied, negative coordinate skips, beyond-area skips (right and bottom), same-cell last-write confirmed, origin offset verified. The `fade_color_aged_is_strictly_dimmer_than_fresh` test has an empty body in the submitted text — the requirement is fully covered by `fade_color_at_half_dims_each_channel` and `fade_color_at_fully_aged_approaches_black`, so no gap. All 21 tests pass.
+
+---
+
+## Module scaffold + pure helpers + Spawn cadence accumulator + Loop integration + Entry swap
+
+## Verdict: APPROVED
+
+**Task:** All 4 tasks (Module scaffold + pure helpers, Spawn cadence accumulator, Loop integration, Entry swap + parked game)
+**Spec:** .artifacts/etwilson/specs/006-sandbox-screen.md
+
+**Scope issues:** none
+
+`src/app.rs` and `src/effects.rs` are not in the spec's declared scope files, but both edits are explicitly anticipated by the spec: making `FRAME_TIME` `pub(crate)` and adding `#![allow(dead_code)]` to `app.rs` are called out by name; adding `Clone, Copy, PartialEq, Eq` derives to `EffectKind` is a natural integration-time adaptation (required to use `EffectKind` in a const slice and dispatch by value). All edits are minimal and enabling. Not flagged.
+
+**Coverage gaps:** none
+
+Pure helpers: `area_center` verified with zero-offset, non-zero offset, and odd dimensions. `next_kind` verified for advance, wrap at end, and len-1 no-op. `map_sandbox_key` verified for Esc, q, Tab, and unknown keys. Cadence accumulator: below-interval (zero spawns), single-interval crossing (one spawn + correct remainder), double-interval crossing (two spawns), and two-frame carry-forward all covered. Loop integration and entry swap have no unit tests per spec (IO-bound) — confirmed by build/clippy/test all green. All 98 tests pass.
