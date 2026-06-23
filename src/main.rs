@@ -6,6 +6,7 @@ mod particles;
 mod render;
 mod rng;
 mod sandbox;
+mod sandbox_config;
 mod theme;
 
 fn main() -> color_eyre::Result<()> {
