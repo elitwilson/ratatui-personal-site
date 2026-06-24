@@ -1,8 +1,8 @@
 use crate::input::KeyCode;
 use ratatui::Frame;
-use ratatui::layout::{Constraint, Direction, Layout};
-use ratatui::style::{Color, Style};
-use ratatui::text::Line;
+use ratatui::layout::{Alignment, Constraint, Direction, Layout};
+use ratatui::style::{Color, Modifier, Style};
+use ratatui::text::{Line, Span};
 use ratatui::widgets::{Block, Paragraph};
 
 const INDIGO_BG: Color = Color::Rgb(30, 27, 75);
@@ -64,30 +64,78 @@ impl About {
             ])
             .split(area);
 
-        let placeholder_style = Style::default().fg(SECONDARY_BLUE).bg(INDIGO_BG);
-
+        // --- BIOS header bar ---
+        let header_style = Style::default().fg(SECONDARY_BLUE).bg(INDIGO_BG);
+        let header_cols = Layout::default()
+            .direction(Direction::Horizontal)
+            .constraints([Constraint::Percentage(50), Constraint::Percentage(50)])
+            .split(rows[0]);
         frame.render_widget(
-            Paragraph::new("[ BIOS header ]").style(placeholder_style),
-            rows[0],
+            Paragraph::new("WILSON-BIOS (C) 1981  v2.6.0").style(header_style),
+            header_cols[0],
         );
         frame.render_widget(
-            Paragraph::new("[ boot log ]").style(Style::default().fg(DIM_GREEN).bg(INDIGO_BG)),
+            Paragraph::new("SYS: ATARI 2600 / RATATUI WASM")
+                .style(header_style)
+                .alignment(Alignment::Right),
+            header_cols[1],
+        );
+
+        // --- POST boot log ---
+        let dim_style = Style::default().fg(DIM_GREEN).bg(INDIGO_BG);
+        let bright_style = Style::default().fg(BRIGHT_GREEN).bg(INDIGO_BG);
+        let boot_lines = vec![
+            Line::styled("> CHECKING MEMORY...", dim_style),
+            Line::styled("> LOADING MODULES...", dim_style),
+            Line::styled("> INITIALIZING DISPLAY...", dim_style),
+            Line::styled("> MOUNTING DRIVES...", dim_style),
+            Line::from(vec![
+                Span::styled("> READY.", bright_style),
+                Span::styled(" █", bright_style.add_modifier(Modifier::SLOW_BLINK)),
+            ]),
+        ];
+        frame.render_widget(
+            Paragraph::new(boot_lines).style(Style::default().bg(INDIGO_BG)),
             rows[2],
         );
+
+        // --- ELI WILSON title block ---
+        let title_lines = vec![
+            Line::styled(
+                "ELI WILSON",
+                Style::default()
+                    .fg(BRIGHT_GREEN)
+                    .bg(INDIGO_BG)
+                    .add_modifier(Modifier::BOLD),
+            ),
+            Line::styled(
+                "// SOFTWARE DEVELOPER  ·  PLAYER 1",
+                Style::default().fg(SECONDARY_BLUE).bg(INDIGO_BG),
+            ),
+        ];
         frame.render_widget(
-            Paragraph::new("[ ELI WILSON ]").style(Style::default().fg(BRIGHT_GREEN).bg(INDIGO_BG)),
+            Paragraph::new(title_lines),
             rows[4],
         );
+
+        // --- PROFILE.TXT placeholder ---
         frame.render_widget(
-            Paragraph::new("[ PROFILE.TXT ]").style(Style::default().fg(PANEL_TEXT).bg(INDIGO_BG)),
+            Paragraph::new("[ PROFILE.TXT ]")
+                .style(Style::default().fg(PANEL_TEXT).bg(INDIGO_BG)),
             rows[6],
         );
+
+        // --- SKILLS / CAREER placeholder ---
         frame.render_widget(
-            Paragraph::new("[ SKILLS / CAREER ]").style(placeholder_style),
+            Paragraph::new("[ SKILLS / CAREER ]")
+                .style(Style::default().fg(SECONDARY_BLUE).bg(INDIGO_BG)),
             rows[8],
         );
+
+        // --- Footer hint row ---
         frame.render_widget(
-            Paragraph::new(Line::from("[ footer ]")).style(placeholder_style),
+            Paragraph::new("↑/↓  w/s  scroll  ·  Esc  back to menu  ·  q  quit")
+                .style(Style::default().fg(SECONDARY_BLUE).bg(INDIGO_BG)),
             rows[9],
         );
 
