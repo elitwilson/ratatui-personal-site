@@ -34,6 +34,12 @@
         font-size: 16px;
         margin: 0px;
       }
+      /* The grid is focused on load (so the keyboard works without a click);
+         hide the browser's default focus ring it would otherwise draw. */
+      #grid:focus,
+      #grid:focus-visible {
+        outline: none;
+      }
     </style>
   </head>
   <body></body>
