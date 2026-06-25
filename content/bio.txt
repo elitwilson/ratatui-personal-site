@@ -1,0 +1,14 @@
+I've been programming since I was ten, writing choose-your-own-adventure
+games in BASIC. Decades later, that's still basically what I do — I just
+build for higher stakes now.
+
+Before software was my job, I spent 14 years as a master's-level
+psychologist at Michigan Medicine, doing cognitive testing and learning
+how people think.
+
+In 2022 I joined Scientific Programming & Innovation, where I build custom
+software for researchers across wildly different fields — suicide-prevention
+work, cancer imaging pipelines, animal cardiology, whatever's on the docket.
+
+The subject matter changes constantly. The job doesn't: take a hard
+scientific problem and turn it into software that actually works.

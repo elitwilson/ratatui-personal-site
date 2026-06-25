@@ -63,6 +63,32 @@ fn render_panel(frame: &mut Frame, area: Rect, title: &str) -> Rect {
     }
 }
 
+/// The PROFILE.TXT bio prose, authored as plain paragraphs separated by blank
+/// lines in `content/bio.txt`. Editing the bio means editing that file — no
+/// `Line::styled` boilerplate — and is baked in at build time via `include_str!`.
+const BIO: &str = include_str!("../content/bio.txt");
+
+/// Split the bio into paragraphs (on blank lines) and render each as a single
+/// styled line with an empty spacer between them; `Paragraph`'s `Wrap` handles
+/// the visual line breaks. Source-file line wrapping within a paragraph is
+/// collapsed to spaces so the author can hard-wrap for editing comfort.
+fn bio_lines(style: Style) -> Vec<Line<'static>> {
+    let paragraphs: Vec<String> = BIO
+        .split("\n\n")
+        .map(|para| para.split_whitespace().collect::<Vec<_>>().join(" "))
+        .filter(|para| !para.is_empty())
+        .collect();
+
+    let mut lines = Vec::with_capacity(paragraphs.len() * 2);
+    for (i, para) in paragraphs.into_iter().enumerate() {
+        if i > 0 {
+            lines.push(Line::styled("", style));
+        }
+        lines.push(Line::styled(para, style));
+    }
+    lines
+}
+
 /// Senior-engineer capabilities, rendered as "loaded modules" in SKILLS.SYS.
 /// These lead with judgment over syntax — the part of the job an agent doesn't
 /// do for you.
@@ -242,29 +268,8 @@ impl About {
         // --- PROFILE.TXT panel ---
         let profile_body = render_panel(frame, rows[6], "PROFILE.TXT");
         let bio_style = Style::default().fg(PANEL_TEXT).bg(INDIGO_BG);
-        let bio_lines = vec![
-            Line::styled(
-                "I've been programming since I was ten, writing choose-your-own-adventure games in BASIC. Decades later, that's still basically what I do — I just build for higher stakes now.",
-                bio_style,
-            ),
-            Line::styled("", bio_style),
-            Line::styled(
-                "Before software was my job, I spent 14 years as a master's-level psychologist at Michigan Medicine, doing cognitive testing and learning how people think.",
-                bio_style,
-            ),
-            Line::styled("", bio_style),
-            Line::styled(
-                "In 2022 I joined Scientific Programming & Innovation, where I build custom software for researchers across wildly different fields — suicide-prevention work, cancer imaging pipelines, animal cardiology, whatever's on the docket.",
-                bio_style,
-            ),
-            Line::styled("", bio_style),
-            Line::styled(
-                "The subject matter changes constantly. The job doesn't: take a hard scientific problem and turn it into software that actually works.",
-                bio_style,
-            ),
-        ];
         frame.render_widget(
-            Paragraph::new(bio_lines)
+            Paragraph::new(bio_lines(bio_style))
                 .wrap(Wrap { trim: true })
                 .style(Style::default().bg(INDIGO_BG)),
             profile_body,
@@ -357,6 +362,18 @@ mod tests {
         let lines = boot_lines(Duration::from_secs(10));
         assert_eq!(lines.len(), BOOT_LOG.len());
         assert!(line_text(&lines[BOOT_LOG.len() - 1]).contains("> READY."));
+    }
+
+    #[test]
+    fn bio_paragraphs_are_separated_by_blank_spacer_lines() {
+        let lines = bio_lines(Style::default());
+        // Four paragraphs in content/bio.txt → 4 prose lines + 3 spacers.
+        assert_eq!(lines.len(), 7);
+        assert!(line_text(&lines[1]).is_empty(), "spacer between paragraphs");
+        // Hard wrapping in the source file is collapsed to single spaces, so a
+        // phrase split across two file lines renders as one continuous string.
+        assert!(line_text(&lines[0]).contains("choose-your-own-adventure games in BASIC"));
+        assert!(!line_text(&lines[0]).contains('\n'));
     }
 
     #[test]
