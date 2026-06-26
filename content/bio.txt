@@ -1,14 +1,18 @@
-I've been programming since I was ten, writing choose-your-own-adventure
-games in BASIC. Decades later, that's still basically what I do — I just
-build for higher stakes now.
+Hello! By some strange twist of fate, you've arrived at my personal website. 
+I'm Eli. I build software for researchers at the [University of Michigan](https://umich.edu) to
+help them focus on their domain expertise instead of technical details. I'm 
+lucky to work on projects that range from tracking near-term risk factors of 
+suicide to analyzing whole slide images of cancer tissue through machine learning
+data pipelines. 
 
-Before software was my job, I spent 14 years as a master's-level
-psychologist at Michigan Medicine, doing cognitive testing and learning
-how people think.
+My background is in psychology and I spent 14 years as a master's-level psychologist
+while writing code and building software as a hobby (like [this website](https://github.com/elitwilson/elitwilson.github.io)
+built in Rust and Ratatui). Now I'm fortunate enough to blend
+my two passions into a career, building things that hopefully leave the world a better 
+place than I found it. 
 
-In 2022 I joined Scientific Programming & Innovation, where I build custom
-software for researchers across wildly different fields — suicide-prevention
-work, cancer imaging pipelines, animal cardiology, whatever's on the docket.
-
-The subject matter changes constantly. The job doesn't: take a hard
-scientific problem and turn it into software that actually works.
+I enjoy the rapid pace of technological advancement, and try to be as close as I can
+to the bleeding edge of the latest tech and newest trends. I've spent a lot of time
+thinking about and developing my own agentic workflows, tools, and skills to help me
+leverage AI and modern tooling to be more productive while maintaining and respecting
+the irreplaceable value of human ownership and creativity.

@@ -77,9 +77,19 @@ fn start() {
         .on_mouse_event({
             let router = router.clone();
             move |mouse_event| {
-                router
-                    .borrow_mut()
-                    .set_mouse((mouse_event.col, mouse_event.row));
+                use ratzilla::event::{MouseButton, MouseEventKind};
+                let pos = (mouse_event.col, mouse_event.row);
+                let mut router = router.borrow_mut();
+                router.set_mouse(pos);
+                if matches!(mouse_event.kind, MouseEventKind::SingleClick(MouseButton::Left)) {
+                    if let Some(nav) = router.handle_click(pos) {
+                        match nav {
+                            Nav::Quit => router.goto(Screen::Menu),
+                            Nav::To(screen) => router.goto(screen),
+                            Nav::OpenUrl(url) => open_in_new_tab(url),
+                        }
+                    }
+                }
             }
         })
         .expect("failed to register mouse handler");

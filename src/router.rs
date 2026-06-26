@@ -65,10 +65,22 @@ impl Router {
         }
     }
 
-    /// Feed the latest cursor cell to the active screen. Only the sandbox cares.
+    /// Feed the latest cursor cell to the active screen. The sandbox uses it as a
+    /// cursor attractor; About uses it for the bio link hover highlight.
     pub fn set_mouse(&mut self, pos: (u16, u16)) {
-        if let ScreenState::Sandbox(s) = &mut self.screen {
-            s.set_mouse(pos);
+        match &mut self.screen {
+            ScreenState::Sandbox(s) => s.set_mouse(pos),
+            ScreenState::About(s) => s.set_mouse(pos),
+            _ => {}
+        }
+    }
+
+    /// Dispatch a left-click at cell `pos` to the active screen. Returns
+    /// `Some(Nav)` if the click requests a navigation (e.g. an About bio link).
+    pub fn handle_click(&mut self, pos: (u16, u16)) -> Option<Nav> {
+        match &mut self.screen {
+            ScreenState::About(s) => s.handle_click(pos),
+            _ => None,
         }
     }
 

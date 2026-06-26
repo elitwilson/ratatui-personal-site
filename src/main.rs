@@ -49,7 +49,10 @@ fn main() -> color_eyre::Result<()> {
 #[cfg(not(target_arch = "wasm32"))]
 fn native_run(terminal: &mut ratatui::DefaultTerminal) -> std::io::Result<()> {
     use crate::app::FRAME_TIME;
-    use crossterm::event::{self, DisableMouseCapture, EnableMouseCapture, Event, KeyEventKind};
+    use crossterm::event::{
+        self, DisableMouseCapture, EnableMouseCapture, Event, KeyEventKind, MouseButton,
+        MouseEventKind,
+    };
     use crossterm::execute;
     use std::io::stdout;
     use std::time::{Duration, Instant};
@@ -82,7 +85,15 @@ fn native_run(terminal: &mut ratatui::DefaultTerminal) -> std::io::Result<()> {
                             break;
                         }
                     }
-                    Event::Mouse(me) => router.set_mouse((me.column, me.row)),
+                    Event::Mouse(me) => {
+                        router.set_mouse((me.column, me.row));
+                        if matches!(me.kind, MouseEventKind::Down(MouseButton::Left)) {
+                            if let Some(nav) = router.handle_click((me.column, me.row)) {
+                                pending_nav = Some(nav);
+                                break;
+                            }
+                        }
+                    }
                     _ => {}
                 }
                 if !event::poll(Duration::ZERO)? {
